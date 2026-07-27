@@ -1,5 +1,7 @@
 .env
-my_keys.py
 
 *__pycache__/
 *venv*/
+
+# Configurações do PyCharm / IntelliJ
+.idea/

@@ -1,11 +1,12 @@
 from langchain_core.globals import set_debug
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from my_helper import encode_image
 from my_keys import GEMINI_API_KEY
 from my_models import GEMINI_FLASH, GEMINI_LITE
+from detalhes_imagem_modelo import DetalhesImagemModelo
 
 set_debug(True)
 
@@ -30,17 +31,24 @@ template = ChatPromptTemplate.from_messages([("system",
 
 cadeia_analise_imagem = template | llm_flash | StrOutputParser()
 
+parser_jason_imagem = JsonOutputParser(pydantic_object=DetalhesImagemModelo)
+
 template_resposta = PromptTemplate(template="""Gere um resumo utilizando uma linguagem clara e objetiva focada no 
                                             publico brasileiro. A ideia da comunicação do resultado seja o mais 
                                             fácil possível, priorizando registros para consultas posteriors.
                                             
-                                            #O Resultado da imagem
-                                            {resposta_cadeia_analise_imagem}""",
-                                   input_variables=["resposta_cadeia_analise_imagem"])
+                                            # O Resultado da imagem
+                                            {resposta_cadeia_analise_imagem}
+                                            
+                                            # FORMATO DE SAIDA
+                                            {formato_saida}
+                                            """,
+                                   input_variables=["resposta_cadeia_analise_imagem"],
+                                   partial_variables={"formato_saida": parser_jason_imagem.get_format_instructions()})
 
 llm_lite = ChatGoogleGenerativeAI(api_key=GEMINI_API_KEY, model=GEMINI_LITE)
 
-cadeia_resumo = template_resposta | llm_lite | StrOutputParser()
+cadeia_resumo = template_resposta | llm_lite | parser_jason_imagem
 
 cadeia_completa = (cadeia_analise_imagem | cadeia_resumo)
 
